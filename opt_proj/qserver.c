@@ -80,7 +80,9 @@ main( int argc, char *argv[] )
 		
 			while (fgets(buffer, BUFSIZE, fp) == NULL) {
 				printf("Error reading file");
-				//printf("%s", buffer); debug
+
+				//debug statement
+				//printf("%s", buffer);
 			}
 		
 			fclose(fp);
