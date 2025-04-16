@@ -51,6 +51,9 @@ void *echo( void *s )
 int
 main( int argc, char *argv[] )
 {
+	//buffer for commandline
+	char buffer[BUFSIZE];
+	//default stuff
 	char			*service;
 	struct sockaddr_in	fsin;
 	int			alen = sizeof(fsin);
@@ -67,6 +70,21 @@ main( int argc, char *argv[] )
 		case	2:
 			// User provides a port? then use it
 			service = argv[1];
+			break;
+		case	3:
+			FILE *fp = fopen(argv[1], "r");
+			if (fp == NULL) {
+				printf("Error opening file");
+				exit(EXIT_FAILURE);
+			}
+		
+			while (fgets(buffer, BUFSIZE, fp) == NULL) {
+				printf("Error reading file");
+				//printf("%s", buffer); debug
+			}
+		
+			fclose(fp);
+			service = argv[2];
 			break;
 		default:
 			fprintf( stderr, "usage: server [port]\n" );
