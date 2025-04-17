@@ -60,6 +60,8 @@ main( int argc, char *argv[] )
 	int			msock;
 	int			ssock;
 	int			rport = 0;
+	//Counter for number of connections
+	int client_count = 0;
 	
 	switch (argc) 
 	{
@@ -109,7 +111,14 @@ main( int argc, char *argv[] )
 		int	ssock;
 		pthread_t	thr;
 
-		ssock = accept( msock, (struct sockaddr *)&fsin, &alen );
+		if (ssock = accept( msock, (struct sockaddr *)&fsin, &alen ) >= 0){
+			client_count++;
+		}
+		else
+		{
+			fprintf( stderr, "accept: %s\n", strerror(errno) );
+			break;
+		}
 		if (ssock < 0)
 		{
 			fprintf( stderr, "accept: %s\n", strerror(errno) );
