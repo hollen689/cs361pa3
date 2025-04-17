@@ -63,12 +63,6 @@ main( int argc, char *argv[] )
 	int			rport = 0;
 	//Counter for number of connections
 	int client_count = 0;
-	//Admin check
-	int is_admin_assigned = 0;
-	//group size
-	int group_max_size = 0;
-	//current group size
-	int current_group_size = 0;
 	
 	switch (argc) 
 	{
@@ -105,14 +99,10 @@ main( int argc, char *argv[] )
 		int	ssock;
 		pthread_t	thr;
 
-		if (ssock = accept( msock, (struct sockaddr *)&fsin, &alen ) >= 0){
+		if ((ssock = accept( msock, (struct sockaddr *)&fsin, &alen )) >= 0){
 			if (client_count == 0) {
 				// First client
 				write(ssock, WADMIN, strlen(WADMIN));
-				current_group_size = 1;
-			}
-			else {
-				current_group_size++;
 			}
 			client_count++;
 		}
@@ -121,23 +111,6 @@ main( int argc, char *argv[] )
 			fprintf( stderr, "accept: %s\n", strerror(errno) );
 			break;
 		}
-
-		/*
-		if (group_max_size > 0 && current_group_size >= group_max_size) {
-			write(ssock, FULL, strlen(FULL));
-			close(ssock);
-			continue;
-		}
-		
-		if (is_admin_assigned == 0) {
-			// First client is admin
-			write(ssock, WADMIN, strlen(WADMIN));
-			is_admin_assigned = 1;
-		} else {
-			// Send JOIN to normal clients
-			write(ssock, JOIN, strlen(JOIN));
-		}
-		*/
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 

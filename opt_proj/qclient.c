@@ -179,7 +179,7 @@ main( int argc, char *argv[] )
 		printf( "How big do you want your group to be?  " );
 		fgets( groupSize, SHORTSIZE, stdin );
 		remove_newline(groupSize, strlen(groupSize));
-
+		
 		sprintf( buf, "GROUP|%s|%s%s", name, groupSize, CRLF );
 	}
 	else if ( strncmp(buf, JOIN, strlen(JOIN)) == 0 )
