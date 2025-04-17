@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include "qserver.h"
 
 #define	QLEN			5
 #define	BUFSIZE			4096
@@ -16,7 +17,7 @@ int passivesock( char *service, char *protocol, int qlen, int *rport );
 
 void *echo( void *s )
 {
-	char buf[BUFSIZE];
+	char qbuf[BUFSIZE];
 	int cc;
 	int ssock = (int) s;
 
@@ -52,7 +53,7 @@ int
 main( int argc, char *argv[] )
 {
 	//buffer for commandline
-	char buffer[BUFSIZE];
+	ques_t qbuf[BBUF];
 	//default stuff
 	char			*service;
 	struct sockaddr_in	fsin;
@@ -74,20 +75,7 @@ main( int argc, char *argv[] )
 			service = argv[1];
 			break;
 		case	3:
-			FILE *fp = fopen(argv[1], "r");
-			if (fp == NULL) {
-				printf("Error opening file");
-				exit(EXIT_FAILURE);
-			}
-		
-			while (fgets(buffer, BUFSIZE, fp) == NULL) {
-				printf("Error reading file");
-
-				//debug statement
-				//printf("%s", buffer);
-			}
-		
-			fclose(fp);
+			read_questions(argv[1], qbuf);
 			service = argv[2];
 			break;
 		default:
