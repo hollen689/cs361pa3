@@ -33,14 +33,11 @@ void *echo( void *s )
 		}
 		else
 		{
-			buf[cc] = '\0';
-			//printf( "The client says: %s\n", buf );
-			if ( write( ssock, buf, cc ) < 0 )
-			{
-				/* This guy is dead */
-				close( ssock );
-				break;
-			}
+			printf("Client wants to join the group\n");
+			if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
+				// Client wants to join the group
+				write(ssock, WAIT, strlen(WAIT));
+			} 
 		}
 	}
 	pthread_exit(NULL);
@@ -111,6 +108,7 @@ main( int argc, char *argv[] )
 			fprintf( stderr, "accept: %s\n", strerror(errno) );
 			break;
 		}
+
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
