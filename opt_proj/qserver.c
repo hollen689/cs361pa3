@@ -13,19 +13,15 @@
 #define	QLEN			5
 #define	BUFSIZE			4096
 
-typedef struct 
-{
-	int *groupsize;
-	int tsock;
-} thrargs_t;
+int group_size = 0;
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
-void *client( thrargs_t *arg )
+void *echo( void *s )
 {
 	char buf[BUFSIZE];
 	int cc;
-	int ssock = arg->tsock;
+	int ssock = (int) s;
 
 	/* start working for this guy */
 	/* ECHO what the client says */
@@ -40,25 +36,20 @@ void *client( thrargs_t *arg )
 		else
 		{
 			printf("Client wants to join the group\n");
-			buf[cc] = '\0';
 			if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
 				char *token = strtok(buf, "|"); // "GROUP"
-				char *name = strtok(NULL, "|"); // name
-				char *sizeStr = strtok(NULL, "\r\n");
+				char *name = strtok(NULL, "|"); // "Alice"
+				char *sizeStr = strtok(NULL, "\r\n"); // "4"
 
-				if (sizeStr && *(arg->groupsize) == 0) {
-					*(arg->groupsize) = atoi(sizeStr);
-					printf("Group size set to %d by %s\n", *(arg->groupsize), name);
+				if (group_size == 0 && sizeStr != NULL) {
+					group_size = atoi(sizeStr);
+					printf("Group size set to %d by leader %s\n", group_size, name);
 				}
 
 				write(ssock, WAIT, strlen(WAIT));
 			} 
-			if (strncmp(buf, JOIN, strlen(JOIN)) == 0){
-
-			}
 		}
 	}
-	free(arg);
 	pthread_exit(NULL);
 }
 
@@ -79,7 +70,6 @@ main( int argc, char *argv[] )
 	int			rport = 0;
 	//Counter for number of connections
 	int client_count = 0;
-	int groupsize = 0;
 	
 	switch (argc) 
 	{
@@ -115,17 +105,13 @@ main( int argc, char *argv[] )
 	{
 		int	ssock;
 		pthread_t	thr;
-		thrargs_t arg;
+
 		if ((ssock = accept( msock, (struct sockaddr *)&fsin, &alen )) >= 0){
 			if (client_count == 0) {
 				// First client
 				write(ssock, WADMIN, strlen(WADMIN));
-			} 
-			client_count++;
-			if (client_count > 1 && client_count < arg.groupsize){
-				write(ssock, JOIN, strlen(JOIN));
 			}
-			
+			client_count++;
 		}
 		else
 		{
@@ -136,10 +122,7 @@ main( int argc, char *argv[] )
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
-		arg.groupsize = &groupsize;
-		arg.tsock = ssock;
-
-		pthread_create( &thr, NULL, (void *(*)(void *))client, (void *)&arg);
+		pthread_create( &thr, NULL, echo, (void *) ssock );
 
 	}
 	pthread_exit(NULL);
