@@ -13,9 +13,15 @@
 #define	QLEN			5
 #define	BUFSIZE			4096
 
+typedef struct 
+{
+	int *groupsize;
+	int *tsock;
+} thrargs_t;
+
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
-void *echo( void *s )
+void *client( void *s )
 {
 	char buf[BUFSIZE];
 	int cc;
@@ -95,7 +101,9 @@ main( int argc, char *argv[] )
 	{
 		int	ssock;
 		pthread_t	thr;
-
+		thrargs_t arg;
+		arg.groupsize = 0;
+		arg.tsock = &ssock;
 		if ((ssock = accept( msock, (struct sockaddr *)&fsin, &alen )) >= 0){
 			if (client_count == 0) {
 				// First client
@@ -112,7 +120,7 @@ main( int argc, char *argv[] )
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
-		pthread_create( &thr, NULL, echo, (void *) ssock );
+		pthread_create( &thr, NULL, client, (void *) ssock );
 
 	}
 	pthread_exit(NULL);
