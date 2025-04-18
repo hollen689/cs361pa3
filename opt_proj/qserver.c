@@ -16,7 +16,7 @@
 typedef struct 
 {
 	int *groupsize;
-	int *tsock;
+	int tsock;
 } thrargs_t;
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
@@ -25,7 +25,7 @@ void *client( thrargs_t *arg )
 {
 	char buf[BUFSIZE];
 	int cc;
-	int ssock = (int) arg->tsock;
+	int ssock = arg->tsock;
 
 	/* start working for this guy */
 	/* ECHO what the client says */
@@ -40,13 +40,22 @@ void *client( thrargs_t *arg )
 		else
 		{
 			printf("Client wants to join the group\n");
+			buf[cc] = '\0';
 			if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
-				arg->groupsize = strtol(buf + 8, NULL, 10);
-				// Client wants to join the group
+				char *token = strtok(buf, "|"); // "GROUP"
+				char *name = strtok(NULL, "|"); // name
+				char *sizeStr = strtok(NULL, "\r\n");
+
+				if (sizeStr && *(arg->groupsize) == 0) {
+					*(arg->groupsize) = atoi(sizeStr);
+					printf("Group size set to %d by %s\n", *(arg->groupsize), name);
+				}
+
 				write(ssock, WAIT, strlen(WAIT));
 			} 
 		}
 	}
+	free(arg);
 	pthread_exit(NULL);
 }
 
@@ -67,6 +76,7 @@ main( int argc, char *argv[] )
 	int			rport = 0;
 	//Counter for number of connections
 	int client_count = 0;
+	int groupsize = 0;
 	
 	switch (argc) 
 	{
@@ -103,8 +113,6 @@ main( int argc, char *argv[] )
 		int	ssock;
 		pthread_t	thr;
 		thrargs_t arg;
-		arg.groupsize = 0;
-		arg.tsock = &ssock;
 		if ((ssock = accept( msock, (struct sockaddr *)&fsin, &alen )) >= 0){
 			if (client_count == 0) {
 				// First client
@@ -121,7 +129,10 @@ main( int argc, char *argv[] )
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
-		pthread_create( &thr, NULL, client, &arg );
+		arg.groupsize = &groupsize;
+		arg.tsock = ssock;
+
+		pthread_create( &thr, NULL, (void *(*)(void *))client, (void *)&arg);
 
 	}
 	pthread_exit(NULL);
