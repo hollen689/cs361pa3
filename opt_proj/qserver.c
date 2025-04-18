@@ -53,6 +53,9 @@ void *client( thrargs_t *arg )
 
 				write(ssock, WAIT, strlen(WAIT));
 			} 
+			if (strncmp(buf, JOIN, strlen(JOIN)) == 0){
+
+			}
 		}
 	}
 	free(arg);
@@ -117,8 +120,12 @@ main( int argc, char *argv[] )
 			if (client_count == 0) {
 				// First client
 				write(ssock, WADMIN, strlen(WADMIN));
-			}
+			} 
 			client_count++;
+			if (client_count > 1 && client_count < arg.groupsize){
+				write(ssock, JOIN, strlen(JOIN));
+			}
+			
 		}
 		else
 		{
