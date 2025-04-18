@@ -21,11 +21,11 @@ typedef struct
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
-void *client( void *s )
+void *client( thrargs_t *arg )
 {
 	char buf[BUFSIZE];
 	int cc;
-	int ssock = (int) s;
+	int ssock = (int) arg->tsock;
 
 	/* start working for this guy */
 	/* ECHO what the client says */
@@ -41,6 +41,7 @@ void *client( void *s )
 		{
 			printf("Client wants to join the group\n");
 			if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
+				arg->groupsize = strtol(buf + 8, NULL, 10);
 				// Client wants to join the group
 				write(ssock, WAIT, strlen(WAIT));
 			} 
@@ -120,7 +121,7 @@ main( int argc, char *argv[] )
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
-		pthread_create( &thr, NULL, client, (void *) ssock );
+		pthread_create( &thr, NULL, client, &arg );
 
 	}
 	pthread_exit(NULL);
