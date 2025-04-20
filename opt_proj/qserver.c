@@ -48,6 +48,8 @@ void *client( void *s )
 
 				write(ssock, WAIT, strlen(WAIT));
 			} else if (strncmp(buf, JOIN, strlen(JOIN))) {
+				char *token = strtok(buf, "|");
+				char *name = strtok(NULL, "|");
 				write(ssock, WAIT, strlen(WAIT));
 			}
 		}
@@ -115,7 +117,7 @@ main( int argc, char *argv[] )
 			}
 			client_count++;
 			if (client_count > 1 && client_count < group_size){
-				wrtie(ssock, WJOIN, strlen(WJOIN));
+				write(ssock, WJOIN, strlen(WJOIN));
 			}
 		}
 		else
