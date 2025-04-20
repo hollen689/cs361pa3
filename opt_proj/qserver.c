@@ -17,7 +17,7 @@ int group_size = 0;
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
-void *echo( void *s )
+void *client( void *s )
 {
 	char buf[BUFSIZE];
 	int cc;
@@ -44,10 +44,12 @@ void *echo( void *s )
 				if (group_size == 0 && sizeStr != NULL) {
 					group_size = atoi(sizeStr);
 					printf("Group size set to %d by leader %s\n", group_size, name);
-				}
+				} 
 
 				write(ssock, WAIT, strlen(WAIT));
-			} 
+			} else if (strncmp(buf, JOIN, strlen(JOIN))) {
+				write(ssock, WAIT, strlen(WAIT));
+			}
 		}
 	}
 	pthread_exit(NULL);
@@ -112,6 +114,9 @@ main( int argc, char *argv[] )
 				write(ssock, WADMIN, strlen(WADMIN));
 			}
 			client_count++;
+			if (client_count > 1 && client_count < group_size){
+				wrtie(ssock, WJOIN, strlen(WJOIN));
+			}
 		}
 		else
 		{
@@ -122,7 +127,7 @@ main( int argc, char *argv[] )
 		printf( "A client has arrived for echoes - serving on fd %d.\n", ssock );
 		fflush( stdout );
 
-		pthread_create( &thr, NULL, echo, (void *) ssock );
+		pthread_create( &thr, NULL, client, (void *) ssock );
 
 	}
 	pthread_exit(NULL);
