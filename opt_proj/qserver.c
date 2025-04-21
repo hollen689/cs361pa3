@@ -14,6 +14,8 @@
 #define	BUFSIZE			4096
 
 int group_size = 0;
+int client_count = 0;
+
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
@@ -25,33 +27,40 @@ void *client( void *s )
 
 	/* start working for this guy */
 	/* ECHO what the client says */
-	for (;;)
-	{
+	
+	client_count++;
+	if (client_count == 1) {
+			// First client
+		write(ssock, WADMIN, strlen(WADMIN));
+	} else if (client_count > 1 && client_count <= group_size){
+		write(ssock, WJOIN, strlen(WJOIN));
+	} else {
+		write(ssock, FULL, strlen(FULL));
+		close(ssock);
+	}
+
+		//old code
 		if ( (cc = read( ssock, buf, BUFSIZE )) <= 0 )
 		{
 			printf( "The client has gone.\n" );
 			close(ssock);
-			break;
 		}
 		else
 		{
-			printf("Client wants to join the group\n");
-			if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
-				char *token = strtok(buf, "|"); // "GROUP"
-				char *name = strtok(NULL, "|"); // "Alice"
-				char *sizeStr = strtok(NULL, "\r\n"); // "4"
-
-				if (group_size == 0 && sizeStr != NULL) {
-					group_size = atoi(sizeStr);
-					printf("Group size set to %d by leader %s\n", group_size, name);
-				} 
-
-				write(ssock, WAIT, strlen(WAIT));
-			} else if (strncmp(buf, JOIN, strlen(JOIN))) {
-				char *token = strtok(buf, "|");
-				char *name = strtok(NULL, "|");
-				write(ssock, WAIT, strlen(WAIT));
-			}
+		printf("Client wants to join the group\n");
+		if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
+			char *token = strtok(buf, "|"); // "GROUP"
+			char *name = strtok(NULL, "|"); // "Alice"
+			char *sizeStr = strtok(NULL, "\r\n"); // "4"
+			if (group_size == 0 && sizeStr != NULL) {
+				group_size = atoi(sizeStr);
+				printf("Group size set to %d by leader %s\n", group_size, name);
+			} 
+			write(ssock, WAIT, strlen(WAIT));
+		} else if (strncmp(buf, JOIN, strlen(JOIN)) == 0) {
+			char *token = strtok(buf, "|");
+			char *name = strtok(NULL, "|");
+			write(ssock, WAIT, strlen(WAIT));
 		}
 	}
 	pthread_exit(NULL);
@@ -73,7 +82,7 @@ main( int argc, char *argv[] )
 	int			ssock;
 	int			rport = 0;
 	//Counter for number of connections
-	int client_count = 0;
+	//int client_count = 0;
 	
 	switch (argc) 
 	{
@@ -107,20 +116,25 @@ main( int argc, char *argv[] )
 	
 	for (;;)
 	{
-		int	ssock;
+		int	ssock = accept( msock, (struct sockaddr *)&fsin, &alen );
 		pthread_t	thr;
 
+		/*
 		if ((ssock = accept( msock, (struct sockaddr *)&fsin, &alen )) >= 0){
-			if (client_count == 0) {
+			client_count++;
+			if (client_count == 1) {
 				// First client
 				write(ssock, WADMIN, strlen(WADMIN));
-			}
-			client_count++;
-			if (client_count > 1 && client_count < group_size){
+			} else if (client_count > 1 && client_count <= group_size){
 				write(ssock, WJOIN, strlen(WJOIN));
+			} else {
+				write(ssock, FULL, strlen(FULL));
+				close(ssock);
+				continue;
 			}
 		}
-		else
+		*/
+		if (ssock < 0)
 		{
 			fprintf( stderr, "accept: %s\n", strerror(errno) );
 			break;

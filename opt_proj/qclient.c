@@ -192,7 +192,7 @@ main( int argc, char *argv[] )
 	}
 	else if ( strncmp(buf, FULL, strlen(FULL)) == 0 )
 	{
-		printf( "Sorry but the group is full." );
+		printf( "Sorry but the group is full.\n" );
 		close(csock);
 		exit(0);
 	}
@@ -213,7 +213,7 @@ main( int argc, char *argv[] )
 			for ( i = 0, j = strlen(WAIT); buf[j] != '\0'; i++, j++ )
 				buf[i] = buf[j];
 			buf[i] = '\0';
-			//printf( "HELLO %s", buf );
+			printf( "HELLO %s", buf );
 			gotqinbuf = 1;
 		}
 	}
@@ -225,6 +225,7 @@ main( int argc, char *argv[] )
 	{
 		if (!gotqinbuf)
 		{
+			
 			read_from_server( csock, buf );
 		}
 		gotqinbuf = 0;
