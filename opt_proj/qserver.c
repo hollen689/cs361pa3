@@ -61,6 +61,8 @@ void *client( void *s )
 			char *token = strtok(buf, "|");
 			char *name = strtok(NULL, "|");
 			write(ssock, WAIT, strlen(WAIT));
+		} else if (client_count == group_size){
+			
 		}
 	}
 	pthread_exit(NULL);
