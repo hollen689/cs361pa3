@@ -15,7 +15,7 @@
 
 int group_size = 0;
 int client_count = 0;
-ques_t qbuf[BBUF]; 
+ques_t *qbuf[MAXQ]; 
 
 //barriers to synchronize threads
 pthread_barrier_t barrier;
@@ -73,7 +73,7 @@ void *client( void *s )
 		}
 		if (client_count == group_size){
 			char question_msg[BUFSIZE];
-			snprintf(question_msg, BUFSIZE, "QUES|%ld|%s\r\n", strlen(qbuf[0].qtext), qbuf[0].qtext);
+			snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[0]->qtext), qbuf[0]->qtext);
 			write(ssock, question_msg, strlen(question_msg));
 		}
 		
