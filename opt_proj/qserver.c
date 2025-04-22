@@ -15,6 +15,11 @@
 
 int group_size = 0;
 int client_count = 0;
+ques_t qbuf[BBUF]; 
+
+//barriers to synchronize threads
+pthread_barrier_t barrier;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
@@ -39,31 +44,39 @@ void *client( void *s )
 		close(ssock);
 	}
 
-		//old code
-		if ( (cc = read( ssock, buf, BUFSIZE )) <= 0 )
-		{
-			printf( "The client has gone.\n" );
-			close(ssock);
-		}
-		else
-		{
+	//old code
+	if ( (cc = read( ssock, buf, BUFSIZE )) <= 0 )
+	{
+		printf( "The client has gone.\n" );
+		close(ssock);
+	}
+	else
+	{
 		printf("Client wants to join the group\n");
 		if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
 			char *token = strtok(buf, "|"); // "GROUP"
 			char *name = strtok(NULL, "|"); // "Alice"
 			char *sizeStr = strtok(NULL, "\r\n"); // "4"
 			if (group_size == 0 && sizeStr != NULL) {
-				group_size = atoi(sizeStr);
+				//group_size = atoi(sizeStr); //change to strtol
+				group_size = strtol(sizeStr, NULL, 10);
+				pthread_barrier_init(&barrier, NULL, group_size);
 				printf("Group size set to %d by leader %s\n", group_size, name);
 			} 
 			write(ssock, WAIT, strlen(WAIT));
+			pthread_barrier_wait(&barrier); //wait barrier
 		} else if (strncmp(buf, JOIN, strlen(JOIN)) == 0) {
 			char *token = strtok(buf, "|");
 			char *name = strtok(NULL, "|");
 			write(ssock, WAIT, strlen(WAIT));
-		} else if (client_count == group_size){
-			
+			pthread_barrier_wait(&barrier); //wait barrier
 		}
+		if (client_count == group_size){
+			char question_msg[BUFSIZE];
+			snprintf(question_msg, BUFSIZE, "QUES|%ld|%s\r\n", strlen(qbuf[0].qtext), qbuf[0].qtext);
+			write(ssock, question_msg, strlen(question_msg));
+		}
+		
 	}
 	pthread_exit(NULL);
 }
@@ -75,7 +88,7 @@ int
 main( int argc, char *argv[] )
 {
 	//buffer for commandline
-	ques_t qbuf[BBUF];
+	//ques_t qbuf[BBUF];
 	//default stuff
 	char			*service;
 	struct sockaddr_in	fsin;
@@ -136,6 +149,7 @@ main( int argc, char *argv[] )
 			}
 		}
 		*/
+
 		if (ssock < 0)
 		{
 			fprintf( stderr, "accept: %s\n", strerror(errno) );
