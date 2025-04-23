@@ -65,6 +65,7 @@ void *client( void *s )
 		write(ssock, WAIT, strlen(WAIT));
 	}
 
+	// Wait for all clients to join the group
 	pthread_mutex_lock(&lock);
 	if (client_count == group_size) {
 		c = true;
@@ -76,7 +77,7 @@ void *client( void *s )
 	}
 	pthread_mutex_unlock(&lock);
 
-	// Now send the question to the client
+	// Send the question to the client (I think this is how the conditions work)
 	char question_msg[BUFSIZE];
 	snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[0]->qtext), qbuf[0]->qtext);
 	write(ssock, question_msg, strlen(question_msg));
