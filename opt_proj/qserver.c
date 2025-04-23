@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include "qserver.h"
 
 #define	QLEN			5
@@ -18,9 +19,9 @@ int client_count = 0;
 ques_t *qbuf[MAXQ]; 
 
 //barriers to synchronize threads
-pthread_barrier_t barrier;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
+c = false;
 
 int passivesock( char *service, char *protocol, int qlen, int *rport );
 
@@ -28,56 +29,58 @@ void *client( void *s )
 {
 	char buf[BUFSIZE];
 	int cc;
-	int ssock = (int) s;
+	int ssock = (int)(intptr_t) s;
 
-	/* start working for this guy */
-	/* ECHO what the client says */
-	
 	client_count++;
 	if (client_count == 1) {
-			// First client
 		write(ssock, WADMIN, strlen(WADMIN));
 	} else if (client_count > 1 && client_count <= group_size){
 		write(ssock, WJOIN, strlen(WJOIN));
 	} else {
 		write(ssock, FULL, strlen(FULL));
 		close(ssock);
+		pthread_exit(NULL);
 	}
 
-	//old code
-	if ( (cc = read( ssock, buf, BUFSIZE )) <= 0 )
-	{
-		printf( "The client has gone.\n" );
+	if ((cc = read(ssock, buf, BUFSIZE)) <= 0) {
+		printf("The client has gone.\n");
 		close(ssock);
+		pthread_exit(NULL);
 	}
-	else
-	{
-		printf("Client wants to join the group\n");
-		if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
-			char *token = strtok(buf, "|"); // "GROUP"
-			char *name = strtok(NULL, "|"); // "Alice"
-			char *sizeStr = strtok(NULL, "\r\n"); // "4"
-			if (group_size == 0 && sizeStr != NULL) {
-				//group_size = atoi(sizeStr); //change to strtol
-				group_size = strtol(sizeStr, NULL, 10);
-				pthread_barrier_init(&barrier, NULL, group_size);
-				printf("Group size set to %d by leader %s\n", group_size, name);
-			} 
-			write(ssock, WAIT, strlen(WAIT));
-			pthread_barrier_wait(&barrier); //wait barrier
-		} else if (strncmp(buf, JOIN, strlen(JOIN)) == 0) {
-			char *token = strtok(buf, "|");
-			char *name = strtok(NULL, "|");
-			write(ssock, WAIT, strlen(WAIT));
-			pthread_barrier_wait(&barrier); //wait barrier
+
+	printf("Client wants to join the group\n");
+
+	if (strncmp(buf, GROUP, strlen(GROUP)) == 0) {
+		char *token = strtok(buf, "|"); // "GROUP"
+		char *name = strtok(NULL, "|"); // "Alice"
+		char *sizeStr = strtok(NULL, "\r\n"); // "4"
+		if (group_size == 0 && sizeStr != NULL) {
+			group_size = strtol(sizeStr, NULL, 10);
+			printf("Group size set to %d by leader %s\n", group_size, name);
 		}
-		if (client_count == group_size){
-			char question_msg[BUFSIZE];
-			snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[0]->qtext), qbuf[0]->qtext);
-			write(ssock, question_msg, strlen(question_msg));
-		}
-		
+		write(ssock, WAIT, strlen(WAIT));
+	} else if (strncmp(buf, JOIN, strlen(JOIN)) == 0) {
+		char *token = strtok(buf, "|");
+		char *name = strtok(NULL, "|");
+		write(ssock, WAIT, strlen(WAIT));
 	}
+
+	pthread_mutex_lock(&lock);
+	if (client_count == group_size) {
+		c = true;
+		pthread_cond_broadcast(&cond);
+	} else {
+		while (!c) {
+			pthread_cond_wait(&cond, &lock);
+		}
+	}
+	pthread_mutex_unlock(&lock);
+
+	// Now send the question to the client
+	char question_msg[BUFSIZE];
+	snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[0]->qtext), qbuf[0]->qtext);
+	write(ssock, question_msg, strlen(question_msg));
+
 	pthread_exit(NULL);
 }
 
