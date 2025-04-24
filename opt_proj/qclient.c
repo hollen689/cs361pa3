@@ -48,7 +48,7 @@ void process_a_question( int sock, char *buf )
 	t1 = strtok( buf, "|" );
 	if ( strcmp(t1, "QUES") != 0 )
 	{
-		//printf( "This is t1: *%s*\n", t1 );
+		printf( "This is t1: *%s*\n", t1 );
 		if ( strcmp(t1, "RESULTS") == 0 )
 			process_results(sock, buf);
 		else	
@@ -92,7 +92,7 @@ void process_a_winner( int sock, char *buf )
 	char *t1, *t2, *t3 = NULL;
 	int i;
 
-	//printf( "processing the winner message %s\n", buf );
+	//printf( "processing the winner message *%s*\n", buf );
 	
 	if ( strncmp(buf, "WIN", 3) != 0 )
 		unexpected_message("Should be a winner announcement.");
@@ -110,7 +110,7 @@ void process_a_winner( int sock, char *buf )
 	}
 	if (t3 != NULL && strlen(t3) > 2)
 	{
-		//printf("This is t3: *%s*\n", t3 );
+		printf("This is t3: *%s* %d\n", t3, strlen(t3));
 		while ( t3[0] == '\n' || t3[0] == '\r' )
 			t3++;
 		for ( i = 0; t3[i] != '\0'; i++ )
