@@ -69,6 +69,7 @@ void *client(void *s)
 
     if ((cc = read(ssock, buf, BUFSIZE)) <= 0) {
         printf("The client has gone.\n");
+        client_count--;
         close(ssock);
         pthread_exit(NULL);
     }
@@ -102,49 +103,88 @@ void *client(void *s)
         }
     }
     pthread_mutex_unlock(&lock);
-		int i = 0;
-		while (qbuf[i] != NULL){
-			// Send question
-			char question_msg[BUFSIZE];
-			winner_set = false;
-			winner_name[0] = '\0';
-			snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[i]->qtext), qbuf[i]->qtext);
-			write(ssock, question_msg, strlen(question_msg));
+    int i = 0;
+    while (qbuf[i] != NULL){
+        // Send question
+        char question_msg[BUFSIZE];
+        winner_set = false;
+        winner_name[0] = '\0';
+        snprintf(question_msg, BUFSIZE, "QUES|%ld|%s", strlen(qbuf[i]->qtext), qbuf[i]->qtext);
+        write(ssock, question_msg, strlen(question_msg));
 
-			// Wait for answer from client
-			if ((cc = read(ssock, buf, BUFSIZE)) <= 0) {
-					printf("The client has gone.\n");
-					close(ssock);
-					pthread_exit(NULL);
-			}
+        // Wait for answer from client
+        if ((cc = read(ssock, buf, BUFSIZE)) <= 0) {
+                printf("The client has gone.\n");
+                client_count--;
+                close(ssock);
+                pthread_exit(NULL);
+        }
 
-			//Find winner
-			pthread_mutex_lock(&winner_mutex);
-			if (!winner_set) {
-				 	printf("%s", clients[client_index].name);
-					strncpy(winner_name, clients[client_index].name, NBUF);
-					winner_set = true;
-			}
-			pthread_mutex_unlock(&winner_mutex);
+        //Find winner
+        pthread_mutex_lock(&winner_mutex);
+        if (!winner_set) {
+                printf("%s", clients[client_index].name);
+                clients[client_index].score += 2;
+                strncpy(winner_name, clients[client_index].name, NBUF);
+                winner_set = true;
+        } else {
+            if (strncmp(buf, "ANS|", 4) == 0) {
+                //char *answer = strtok(buf + 4, "\r\n");
+                if (strcmp(answer, qbuf[i]->answer) == 0) {
+                    pthread_mutex_lock(&winner_mutex);
+                    clients[client_index].score++;
+                    pthread_mutex_unlock(&winner_mutex);
+                } else if (strncmp("NOANS", buf, 5) == 0) {
+                    clients[client_index].score += 0;
+                } else {
+                    clients[client_index].score -= 1;
+                }
+            }   
+        }
+        pthread_mutex_unlock(&winner_mutex);
 
-			pthread_mutex_lock(&lock);
-			answers_received++;
-			if (answers_received == group_size) {
-					pthread_cond_broadcast(&cond);
-			} else {
-					while (answers_received < group_size) {
-							pthread_cond_wait(&cond, &lock);
-					}
-			}
-			pthread_mutex_unlock(&lock);
+        // Process answer
+        /*
+        if (strncmp(buf, "ANS|", 4) == 0) {
+            char *answer = strtok(buf + 4, "\r\n");
+            if (strcmp(answer, qbuf[i]->answer) == 0) {
+                pthread_mutex_lock(&winner_mutex);
+                clients[client_index].score++;
+                pthread_mutex_unlock(&winner_mutex);
+            }
+        }
+        */
 
-			//Send winner announcement
-			char win_msg[BUFSIZE];
-			snprintf(win_msg, BUFSIZE, "WIN|%s\r\n", winner_name);
-			//printf("*%s*\n", win_msg);
-			write(ssock, win_msg, strlen(win_msg));
-			i++;
-		}
+        pthread_mutex_lock(&lock);
+        answers_received++;
+        if (answers_received == group_size) {
+                pthread_cond_broadcast(&cond);
+        } else {
+                while (answers_received < group_size) {
+                        pthread_cond_wait(&cond, &lock);
+                }
+        }
+        pthread_mutex_unlock(&lock);
+
+        //Send winner announcement
+        char win_msg[BUFSIZE];
+        snprintf(win_msg, BUFSIZE, "WIN|%s\r\n", winner_name);
+        //printf("*%s*\n", win_msg);
+        write(ssock, win_msg, strlen(win_msg));
+        i++;
+    }
+
+    char* end_msg = "RESULTS";
+    for(int i = 0; i < client_count; i++) {
+        strncat(end_msg, "|", 1);
+        strncat(end_msg, clients[i].name, NBUF);
+        strncat(end_msg, "|", 1);
+        strncat(end_msg, clients[1].score, 1);
+    }
+    strncat(end_msg, "\r\n", 2);
+
+    write(ssock, end_msg, strlen(end_msg));
+
     pthread_exit(NULL);
 }
 
