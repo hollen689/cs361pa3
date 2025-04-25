@@ -130,6 +130,8 @@ void *client(void *s)
         } else {
             if (strncmp(buf, "ANS|", 4) == 0) {
                 //char *answer = strtok(buf + 4, "\r\n");
+                char* answer = strtok(buf, "|");
+                answer = strtok(buf, "");
                 if (strcmp(answer, qbuf[i]->answer) == 0) {
                     pthread_mutex_lock(&winner_mutex);
                     clients[client_index].score++;
