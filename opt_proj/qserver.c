@@ -116,6 +116,7 @@ void *client(void *s)
         if ((cc = read(ssock, buf, BUFSIZE)) <= 0) {
                 printf("The client has gone.\n");
                 client_count--;
+                group_size--;
                 close(ssock);
                 pthread_exit(NULL);
         }
